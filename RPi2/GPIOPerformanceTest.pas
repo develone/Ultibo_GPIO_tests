@@ -22,7 +22,7 @@ const
 
 var
  WindowHandle:TWindowHandle;
- startTime, processingTime, prevProcessingTime, jitter, counter : int64;
+ startTime, endTime, processingTime, prevProcessingTime, jitter, counter : int64;
  jitterHistogram : array[ 0..MAX_JITTER ] of integer;
  i : integer;
 
@@ -43,22 +43,16 @@ begin
   DisableIRQ;
 
   startTime := ClockGetTotal();
-  prevProcessingTime := ClockGetTotal();
-  while ( prevProcessingTime - startTime < RUN_TIME ) do
+  counter := 0;
+  while ( counter < 1000000000 ) do
   begin
     PLongWord(BCM2836_GPIO_REGS_BASE + BCM2836_GPSET0)^:=$00010000;
-    processingTime := ClockGetTotal();
-    jitter := processingTime - prevProcessingTime;
-    if ( jitter > MAX_JITTER ) then jitter := MAX_JITTER;
     PLongWord(BCM2836_GPIO_REGS_BASE + BCM2836_GPCLR0)^:=$00010000;
-    inc( jitterHistogram[ jitter ] );
-    prevProcessingTime := processingTime;
     inc( counter );
   end;
-
+  endTime := ClockGetTotal();
   EnableIRQ;
-
-  ConsoleWindowWriteLn(WindowHandle, 'Average toggle rate: ' + floattostr( counter / RUN_TIME ) + ' MHz' );
+  ConsoleWindowWriteLn(WindowHandle, 'Average toggle rate: ' + floattostr(  1000000000.0 * 1000000.0 * CLOCK_CYCLES_PER_MICROSECOND  / ( endTime - startTime )  ) + ' MHz' );
 
   for i := 0 to MAX_JITTER do
   begin
